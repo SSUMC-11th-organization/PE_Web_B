@@ -6,7 +6,7 @@ SSUMC 11기 Web 스터디 B조
 
 | 뚜이 | 에단 | 민스 | 페트릭 | 스텔라 |
 | :---: | :---: | :---: | :---: | :---: |
-| [임도현](https://github.com/dlaehgus1112-wq) | [이아린](https://github.com/ethan0587) | [김민성](https://github.com/minseongid) | 노형원 | [이지현](https://github.com/jhyunniee) |
+| [임도현](https://github.com/dlaehgus1112-wq) | [이아린](https://github.com/ethan0587) | [김민성](https://github.com/minseongid) | [노형원](https://github.com/20233017-RHW) | [이지현](https://github.com/jhyunniee) |
 
 <br/>
 
