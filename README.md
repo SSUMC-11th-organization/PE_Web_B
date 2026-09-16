@@ -21,8 +21,8 @@ SSUMC 11기 Web 스터디 B조
 
 ```bash
 ├─main
-    ├─taegeon/main
-    │  └─taegeon/#1
+    ├─joja/main
+    │  └─joja/#1
 ```
 
 1. `닉네임/main 브랜치`가 기본 브랜치로 pr 보낼 때 root 브랜치(main 브랜치)가 아닌 닉네임/main 브랜치로 올립니다.
