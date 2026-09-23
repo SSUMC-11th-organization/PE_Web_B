@@ -1,0 +1,19 @@
+.movie-list-page {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+}
+
+.movie-list-page__content {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 80px 64px;
+}
+
+.movie-list-page__title {
+  margin: 0 0 20px;
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 44px;
+  letter-spacing: -1.71px;
+  color: var(--color-text-primary);
+}

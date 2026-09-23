@@ -1,0 +1,66 @@
+.movie-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.movie-card__poster-wrap {
+  position: relative;
+  width: 100%;
+  height: 274px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-border-default);
+}
+
+.movie-card__poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.movie-card__bookmark {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #ffffff;
+  background: var(--color-text-primary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.movie-card__bookmark img {
+  width: 20px;
+  height: 20px;
+  filter: invert(1) brightness(2);
+}
+
+.movie-card__bookmark--active {
+  background: var(--color-action-primary);
+  border-color: var(--color-action-primary);
+}
+
+.movie-card__title {
+  margin: 5px 0 0;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movie-card__date {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+}
