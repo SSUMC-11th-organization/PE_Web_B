@@ -1,0 +1,47 @@
+.credit-bar {
+  margin: 0;
+  padding: 10px 16px;
+  background: #111827;
+  color: #fff;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 24px 32px 48px;
+}
+
+.page-shell {
+  max-width: 1280px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+}
+
+.movie-list {
+  padding: 8px 48px 32px;
+}
+
+.movie-list h1 {
+  margin: 0 0 24px;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.site-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 16px 48px 28px;
+}
+
+.site-footer img {
+  height: 16px;
+  width: auto;
+}
