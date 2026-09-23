@@ -1,0 +1,99 @@
+.header {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  height: 72px;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header__left {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.header__logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.header__logo-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: #111827;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header__logo-icon img {
+  width: 18px;
+  height: 18px;
+  filter: invert(1);
+}
+
+.header__nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.header__nav-link {
+  font-size: 15px;
+  font-weight: 500;
+  color: #4b5563;
+  padding: 4px 0;
+}
+
+.header__nav-link--active {
+  color: #111827;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+
+.header__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header__icon-button {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header__icon-button:hover {
+  background-color: #f3f4f6;
+}
+
+.header__login-button {
+  height: 38px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 8px;
+  background-color: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.header__login-button:hover {
+  background-color: #1d4ed8;
+}
