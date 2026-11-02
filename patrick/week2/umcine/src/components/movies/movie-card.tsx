@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import type { Movie } from "../../types/movie";
+import type { MovieCardItem } from "../../types/movie-card";
 import { BookmarkButton } from "../bookmark-button";
 
 interface MovieCardProps {
-  movie: Movie;
+  movie: MovieCardItem;
 }
 
 export function MovieCard({ movie }: MovieCardProps) {
@@ -11,11 +11,17 @@ export function MovieCard({ movie }: MovieCardProps) {
     <article className="flex flex-col gap-2.5 text-left">
       <Link to="/movies/$movieId" params={{ movieId: String(movie.id) }}>
         <div className="relative">
-          <img
-            src={movie.posterPath}
-            alt={movie.title}
-            className="w-full aspect-[2/3] object-cover rounded-2xl bg-gray-200"
-          />
+          {movie.posterUrl ? (
+            <img
+              src={movie.posterUrl}
+              alt={movie.title}
+              className="w-full aspect-[2/3] object-cover rounded-2xl bg-gray-200"
+            />
+          ) : (
+            <div className="flex w-full aspect-[2/3] items-center justify-center rounded-2xl bg-gray-200 text-sm text-gray-500">
+              이미지 없음
+            </div>
+          )}
           <BookmarkButton
             movieId={movie.id}
             className="absolute right-2 top-2"

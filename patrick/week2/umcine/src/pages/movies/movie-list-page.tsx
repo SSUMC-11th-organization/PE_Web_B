@@ -1,12 +1,76 @@
-import { movies } from "../../data/movies";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
+import { getMovies } from "../../api/movies/get-movies";
+import { ErrorMessage } from "../../components/error-message";
 import { MovieGrid } from "../../components/movies/movie-grid";
 import { Pagination } from "../../components/movies/pagination";
+import { TmdbFooter } from "../../components/layout/tmdb-footer";
 import { useViewSettingsStore } from "../../stores/view-settings-store";
+import type { MovieCardItem } from "../../types/movie-card";
 import { cn } from "../../utils/cn";
+import { toMovieCardItem } from "../../utils/movies/movie-adapter";
+
+const TMDB_MAX_PAGE = 500;
 
 export function MovieListPage() {
+  const { page = 1 } = useSearch({ from: "/" });
+  const navigate = useNavigate({ from: "/" });
+
   const cardSize = useViewSettingsStore((state) => state.cardSize);
   const setCardSize = useViewSettingsStore((state) => state.setCardSize);
+
+  const [movies, setMovies] = useState<MovieCardItem[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadMovies() {
+      setIsLoading(true);
+      setErrorMessage(null);
+
+      try {
+        const response = await getMovies({ page });
+        if (!ignore) {
+          setMovies(response.results.map(toMovieCardItem));
+          setTotalPages(Math.min(response.total_pages, TMDB_MAX_PAGE));
+        }
+      } catch {
+        if (!ignore) setErrorMessage("영화 목록을 불러오지 못했어요.");
+      } finally {
+        if (!ignore) setIsLoading(false);
+      }
+    }
+
+    loadMovies();
+
+    return () => {
+      ignore = true;
+    };
+  }, [page, retryKey]);
+
+  function handlePageChange(nextPage: number) {
+    navigate({ search: nextPage === 1 ? {} : { page: nextPage } });
+  }
+
+  let content: ReactNode;
+  if (isLoading) {
+    content = <p className="text-gray-500">영화 목록을 불러오는 중이에요.</p>;
+  } else if (errorMessage) {
+    content = (
+      <ErrorMessage
+        message={errorMessage}
+        onRetry={() => setRetryKey((key) => key + 1)}
+      />
+    );
+  } else if (movies.length === 0) {
+    content = <p className="text-gray-500">조건에 맞는 영화가 없어요.</p>;
+  } else {
+    content = <MovieGrid movies={movies} />;
+  }
 
   return (
     <>
@@ -49,12 +113,14 @@ export function MovieListPage() {
                 </button>
               </div>
             </div>
-            <MovieGrid movies={movies} />
+            {content}
           </section>
-          <Pagination />
-          <footer className="flex justify-end items-center px-12 pt-4 pb-7">
-            <img src="/images/logos/tmdb-logo.svg" alt="TMDB" className="h-4 w-auto" />
-          </footer>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+          <TmdbFooter />
         </div>
       </div>
     </>

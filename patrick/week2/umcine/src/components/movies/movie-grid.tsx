@@ -1,9 +1,9 @@
-import type { Movie } from "../../types/movie";
+import type { MovieCardItem } from "../../types/movie-card";
 import { useViewSettingsStore, type CardSize } from "../../stores/view-settings-store";
 import { MovieCard } from "./movie-card";
 
 interface MovieGridProps {
-  movies: Movie[];
+  movies: MovieCardItem[];
 }
 
 const GRID_CLASS: Record<CardSize, string> = {
