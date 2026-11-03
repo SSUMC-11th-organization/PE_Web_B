@@ -1,7 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
-import { getMovies } from '../../api/movies/get-movies'
-import type { TmdbMovieListItem } from '../../api/movies/models'
+import { movieQueries } from '../../api/movies/queries'
 import StatusMessage from '../../components/common/status-message'
 import MovieGrid, { MovieGridSkeleton } from '../../components/movies/movie-grid'
 import Pagination from '../../components/pagination'
@@ -12,38 +11,11 @@ export function MovieListPage() {
   const { page = 1 } = useSearch({ from: '/' })
   const navigate = useNavigate({ from: '/' })
 
-  const [movies, setMovies] = useState<TmdbMovieListItem[]>([])
-  const [totalPages, setTotalPages] = useState(1)
-  const [isLoading, setIsLoading] = useState(true)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  // 값이 바뀌면 Effect가 다시 실행돼서 마지막으로 실패한 요청을 다시 보내요.
-  const [retryCount, setRetryCount] = useState(0)
+  // page가 query key에 들어 있어서 페이지마다 캐시가 따로 저장돼요.
+  const moviesQuery = useQuery(movieQueries.list(page))
 
-  useEffect(() => {
-    let ignore = false
-    async function loadMovies() {
-      setIsLoading(true)
-      setErrorMessage(null)
-
-      try {
-        const response = await getMovies({ page })
-        if (!ignore) {
-          setMovies(response.results)
-          setTotalPages(Math.min(response.total_pages, TMDB_MAX_PAGE))
-        }
-      } catch {
-        if (!ignore) setErrorMessage('영화 목록을 불러오지 못했어요.')
-      } finally {
-        if (!ignore) setIsLoading(false)
-      }
-    }
-
-    loadMovies()
-
-    return () => {
-      ignore = true
-    }
-  }, [page, retryCount])
+  const movies = moviesQuery.data?.results ?? []
+  const totalPages = Math.min(moviesQuery.data?.total_pages ?? 1, TMDB_MAX_PAGE)
 
   function handlePageChange(nextPage: number) {
     navigate({ search: { page: nextPage } })
@@ -51,9 +23,9 @@ export function MovieListPage() {
   }
 
   function renderContent() {
-    if (isLoading) return <MovieGridSkeleton />
-    if (errorMessage) {
-      return <StatusMessage message={errorMessage} onRetry={() => setRetryCount((count) => count + 1)} />
+    if (moviesQuery.isPending) return <MovieGridSkeleton />
+    if (moviesQuery.isError) {
+      return <StatusMessage message="영화 목록을 불러오지 못했어요." onRetry={() => moviesQuery.refetch()} />
     }
     if (movies.length === 0) return <StatusMessage message="조건에 맞는 영화가 없어요." />
     return <MovieGrid movies={movies.map(toMovieCardItem)} />
@@ -65,7 +37,7 @@ export function MovieListPage() {
         영화 목록
       </h1>
       {renderContent()}
-      {!errorMessage && (
+      {!moviesQuery.isError && (
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
       )}
     </main>

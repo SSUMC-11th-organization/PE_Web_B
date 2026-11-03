@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useState, type SubmitEvent } from "react";
-import type { TmdbMovieListItem } from "../../api/movies/models";
-import { searchMovies } from "../../api/movies/search-movies";
+import { useQuery } from "@tanstack/react-query";
+import { useState, type SubmitEvent } from "react";
+import { movieQueries } from "../../api/movies/queries";
 import StatusMessage from "../../components/common/status-message";
 import BookmarkButton from "../../components/movies/bookmark-button";
 import MoviePoster from "../../components/movies/movie-poster";
@@ -21,51 +21,14 @@ export function SearchPage() {
     setSearchText(query);
   }
 
-  const [movies, setMovies] = useState<TmdbMovieListItem[]>([]);
-  const [totalResults, setTotalResults] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  // 첫 화면에서 검색어가 있으면 바로 로딩 상태로 시작해요.
-  const [isLoading, setIsLoading] = useState(Boolean(query.trim()));
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-
   const normalizedQuery = query.trim();
 
-  // 검색어, 페이지가 바뀌거나 다시 시도하면 렌더링 중에 이전 결과를 비워요. (Effect 안에서 바로 setState하지 않기 위해서예요.)
-  const requestKey = `${normalizedQuery}|${page}|${retryCount}`;
-  const [prevRequestKey, setPrevRequestKey] = useState(requestKey);
-  if (requestKey !== prevRequestKey) {
-    setPrevRequestKey(requestKey);
-    setMovies([]);
-    setErrorMessage(null);
-    setIsLoading(Boolean(normalizedQuery));
-  }
+  // 검색어와 페이지가 query key에 들어 있어서 검색어·페이지마다 캐시가 따로 저장돼요.
+  const searchQuery = useQuery(movieQueries.search(normalizedQuery, page));
 
-  useEffect(() => {
-    // 빈 검색어라면 요청하지 않아요.
-    if (!normalizedQuery) return;
-
-    let ignore = false;
-
-    searchMovies({ query: normalizedQuery, page })
-      .then((response) => {
-        if (!ignore) {
-          setMovies(response.results);
-          setTotalResults(response.total_results);
-          setTotalPages(Math.min(response.total_pages, TMDB_MAX_PAGE));
-        }
-      })
-      .catch(() => {
-        if (!ignore) setErrorMessage("검색 결과를 불러오지 못했어요.");
-      })
-      .finally(() => {
-        if (!ignore) setIsLoading(false);
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, [normalizedQuery, page, retryCount]);
+  const movies = searchQuery.data?.results ?? [];
+  const totalResults = searchQuery.data?.total_results ?? 0;
+  const totalPages = Math.min(searchQuery.data?.total_pages ?? 1, TMDB_MAX_PAGE);
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,10 +45,11 @@ export function SearchPage() {
   }
 
   function renderResults() {
-    if (isLoading) return <StatusMessage message="검색 결과를 불러오는 중이에요." />;
-    if (errorMessage) {
+    // enabled로 요청을 막을 수 있는 화면이라 실제 첫 요청 중일 때만(isLoading) 로딩을 보여 줘요.
+    if (searchQuery.isLoading) return <StatusMessage message="검색 결과를 불러오는 중이에요." />;
+    if (searchQuery.isError) {
       return (
-        <StatusMessage message={errorMessage} onRetry={() => setRetryCount((count) => count + 1)} />
+        <StatusMessage message="검색 결과를 불러오지 못했어요." onRetry={() => searchQuery.refetch()} />
       );
     }
     if (movies.length === 0) return <StatusMessage message="조건에 맞는 영화가 없어요." />;
@@ -161,7 +125,7 @@ export function SearchPage() {
             <h2 className="text-2xl font-bold tracking-[-0.8px] text-text-primary">
               ‘{normalizedQuery}’ 검색 결과
             </h2>
-            {!isLoading && !errorMessage && (
+            {searchQuery.isSuccess && (
               <p className="text-sm text-text-tertiary">영화 {totalResults.toLocaleString()}편</p>
             )}
           </div>

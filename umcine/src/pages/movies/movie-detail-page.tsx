@@ -1,7 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { getMovieDetail } from "../../api/movies/get-movie-detail";
-import type { TmdbMovieDetail } from "../../api/movies/models";
+import { movieQueries } from "../../api/movies/queries";
 import StatusMessage from "../../components/common/status-message";
 import BookmarkButton from "../../components/movies/bookmark-button";
 import MoviePoster from "../../components/movies/movie-poster";
@@ -14,59 +13,23 @@ export function MovieDetailPage() {
   const parsedMovieId = Number(movieId);
   const isValidMovieId = Number.isInteger(parsedMovieId) && parsedMovieId > 0;
 
-  const [movie, setMovie] = useState<TmdbMovieDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(isValidMovieId);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-
-  // 영화 ID가 바뀌거나 다시 시도하면 렌더링 중에 이전 상세 데이터를 비워요.
-  // 유효하지 않은 ID라면 요청하지 않으므로 로딩도 바로 끝내요.
-  const requestKey = `${movieId}|${retryCount}`;
-  const [prevRequestKey, setPrevRequestKey] = useState(requestKey);
-  if (requestKey !== prevRequestKey) {
-    setPrevRequestKey(requestKey);
-    setMovie(null);
-    setErrorMessage(null);
-    setIsLoading(isValidMovieId);
-  }
-
-  useEffect(() => {
-    if (!isValidMovieId) return;
-
-    let ignore = false;
-
-    async function loadMovie() {
-      try {
-        const response = await getMovieDetail(parsedMovieId);
-        if (!ignore) setMovie(response);
-      } catch (error) {
-        if (!ignore) setErrorMessage(getMovieDetailErrorMessage(error));
-      } finally {
-        if (!ignore) setIsLoading(false);
-      }
-    }
-
-    loadMovie();
-
-    return () => {
-      ignore = true;
-    };
-  }, [parsedMovieId, isValidMovieId, retryCount]);
-
-  if (!isValidMovieId || isLoading || errorMessage || !movie) {
+  // 유효하지 않은 ID라면 enabled가 false라서 요청하지 않아요.
+  const movieDetailQuery = useQuery(movieQueries.detail(parsedMovieId));
+  if (!isValidMovieId || movieDetailQuery.isPending || movieDetailQuery.isError) {
     let content;
+    // 요청하지 않아도 isPending이 참일 수 있어서 잘못된 번호 안내를 로딩보다 먼저 확인해요.
     if (!isValidMovieId) {
       content = <StatusMessage message="올바르지 않은 영화 번호예요." />;
-    } else if (isLoading) {
+    } else if (movieDetailQuery.isPending) {
       content = <StatusMessage message="영화 정보를 불러오는 중이에요." />;
     } else {
-      const message = errorMessage ?? "영화 정보를 불러오지 못했어요.";
+      const message = getMovieDetailErrorMessage(movieDetailQuery.error);
       // 404는 다시 시도해도 같은 결과이므로 다시 시도 버튼을 보여 주지 않아요.
       const canRetry = message !== "영화를 찾을 수 없어요.";
       content = (
         <StatusMessage
           message={message}
-          onRetry={canRetry ? () => setRetryCount((count) => count + 1) : undefined}
+          onRetry={canRetry ? () => movieDetailQuery.refetch() : undefined}
         />
       );
     }
@@ -74,7 +37,7 @@ export function MovieDetailPage() {
     return (
       <main className="mx-auto max-w-[1440px] px-4 py-24 text-center md:px-20">
         {content}
-        {!isLoading && (
+        {!(isValidMovieId && movieDetailQuery.isPending) && (
           <Link className="mt-4 inline-block text-sm font-bold text-action-primary hover:underline" to="/">
             영화 목록으로 돌아가기
           </Link>
@@ -83,6 +46,7 @@ export function MovieDetailPage() {
     );
   }
 
+  const movie = movieDetailQuery.data;
   const backdropUrl = getTmdbBackdropUrl(movie.backdrop_path);
   const genres = movie.genres.map((genre) => genre.name).join(", ");
 
