@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "week3-umcine",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "week3", "exec", "vite", "--port", "5174", "--strictPort"],
+      "port": 5174
+    },
+    {
+      "name": "week2-umcine",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "week2", "run", "dev", "--", "--port", "5173", "--strictPort"],
+      "port": 5173
+    }
+  ]
+}
