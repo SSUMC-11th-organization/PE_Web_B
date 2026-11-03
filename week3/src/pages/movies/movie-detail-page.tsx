@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { isHTTPError } from "ky";
+import { useQuery } from "@tanstack/react-query";
 import { getMovieDetail } from "../../apis/movies";
-import { useAsync } from "../../hooks/use-async";
 import { useBookmarkStore } from "../../stores/bookmark-store";
 import { cn } from "../../utils/cn";
 import MoviePoster from "../../components/movies/movie-poster";
@@ -14,21 +14,27 @@ const route = getRouteApi("/movies/$movieId");
 
 const STARS = [1, 2, 3, 4, 5];
 
-function MovieDetailPage() {
-  const { movieId } = route.useParams();
-  const id = Number(movieId);
+const isNotFoundError = (error: unknown) =>
+  isHTTPError(error) && error.response.status === 404;
 
-  if (!Number.isInteger(id) || id <= 0) {
+function MovieDetailPage() {
+  const { movieId: movieIdParam } = route.useParams();
+  const movieId = Number(movieIdParam);
+  const isValidMovieId = Number.isInteger(movieId) && movieId > 0;
+
+  const movieDetailQuery = useQuery({
+    queryKey: ["movies", "detail", movieId],
+    queryFn: ({ signal }) => getMovieDetail(movieId, signal),
+    enabled: isValidMovieId,
+    // 없는 영화(404)는 다시 요청해도 결과가 같아서 재시도하지 않아요.
+    retry: (failureCount, error) => !isNotFoundError(error) && failureCount < 3,
+  });
+
+  if (!isValidMovieId) {
     return <MovieNotFound />;
   }
 
-  return <MovieDetailLoader key={id} movieId={id} />;
-}
-
-function MovieDetailLoader({ movieId }: { movieId: number }) {
-  const result = useAsync((signal) => getMovieDetail(movieId, signal), [movieId]);
-
-  if (result.status === "loading") {
+  if (movieDetailQuery.isPending) {
     return (
       <main className="flex flex-1 flex-col">
         <LoadingState />
@@ -36,18 +42,18 @@ function MovieDetailLoader({ movieId }: { movieId: number }) {
     );
   }
 
-  if (result.status === "error") {
-    if (isHTTPError(result.error) && result.error.response.status === 404) {
+  if (movieDetailQuery.isError) {
+    if (isNotFoundError(movieDetailQuery.error)) {
       return <MovieNotFound />;
     }
     return (
       <main className="flex flex-1 flex-col">
-        <ErrorState error={result.error} onRetry={result.retry} />
+        <ErrorState error={movieDetailQuery.error} onRetry={() => movieDetailQuery.refetch()} />
       </main>
     );
   }
 
-  return <MovieDetail movie={result.data} />;
+  return <MovieDetail key={movieId} movie={movieDetailQuery.data} />;
 }
 
 function MovieNotFound() {

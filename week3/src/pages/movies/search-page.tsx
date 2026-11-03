@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import { cn } from "../../utils/cn";
+import { useQuery } from "@tanstack/react-query";
 import { searchMovies } from "../../apis/movies";
-import { useAsync } from "../../hooks/use-async";
 import MoviePoster from "../../components/movies/movie-poster";
 import LoadingState from "../../components/status/loading-state";
 import ErrorState from "../../components/status/error-state";
@@ -98,68 +98,75 @@ function SearchPage() {
         <p className="mt-10 text-center text-sm text-ink-2">검색어를 입력해 주세요.</p>
       )}
 
-      {hasQuery && <SearchResults key={keyword} keyword={keyword} />}
+      {hasQuery && <SearchResults keyword={keyword} />}
     </main>
   );
 }
 
 function SearchResults({ keyword }: { keyword: string }) {
-  const result = useAsync((signal) => searchMovies(keyword, signal), [keyword]);
+  const searchQuery = useQuery({
+    queryKey: ["movies", "search", { query: keyword }],
+    queryFn: ({ signal }) => searchMovies(keyword, signal),
+    enabled: keyword.length > 0,
+  });
+
+  const searchResults = searchQuery.data?.movies ?? [];
 
   return (
     <section className="mt-5">
       <div className="flex items-baseline justify-between border-b border-line pb-3">
         <h2 className="text-lg font-bold">&lsquo;{keyword}&rsquo; 검색 결과</h2>
-        {result.status === "success" && (
+        {searchQuery.isSuccess && (
           <p className="text-xs text-ink-3">
-            영화 {result.data.totalResults}편 · {result.data.page}페이지
+            영화 {searchQuery.data.totalResults}편 · {searchQuery.data.page}페이지
           </p>
         )}
       </div>
 
-      {result.status === "loading" && <LoadingState message="영화를 검색하는 중이에요." />}
-      {result.status === "error" && <ErrorState error={result.error} onRetry={result.retry} />}
-      {result.status === "success" &&
-        (result.data.movies.length === 0 ? (
-          <EmptyState message={`‘${keyword}’에 대한 검색 결과가 없어요.`} />
-        ) : (
-          <ul className="grid grid-cols-2 gap-x-10">
-            {result.data.movies.map((movie) => (
-              <li key={movie.id} className="border-b border-line py-5">
-                <Link
-                  to="/movies/$movieId"
-                  params={{ movieId: String(movie.id) }}
-                  className="flex gap-[18px]"
-                >
-                  <MoviePoster
-                    src={movie.posterUrl}
-                    alt={movie.title}
-                    loading="lazy"
-                    className="h-[190px] w-[126px] shrink-0 rounded-lg"
-                  />
-                  <div className="flex min-w-0 flex-1 flex-col gap-2.5 pt-1">
-                    <h3 className="text-xl font-bold leading-6">{movie.title}</h3>
-                    <p className="text-xs text-ink-3">
-                      {movie.originalTitle}
-                      <span className="ml-2">{movie.releaseDate}</span>
-                    </p>
-                    <p className="line-clamp-2 text-xs leading-5 text-ink-2">{movie.overview}</p>
-                    <span className="mt-auto mb-9 flex items-center gap-1 text-xs font-bold text-primary">
-                      상세 보기
-                      <span
-                        className="size-3.5 bg-primary [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]"
-                        style={{
-                          maskImage: "url(/icons/movie-icons/arrow-right.svg)",
-                          WebkitMaskImage: "url(/icons/movie-icons/arrow-right.svg)",
-                        }}
-                      />
-                    </span>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ))}
+      {searchQuery.isLoading ? (
+        <LoadingState message="영화를 검색하는 중이에요." />
+      ) : searchQuery.isError ? (
+        <ErrorState error={searchQuery.error} onRetry={() => searchQuery.refetch()} />
+      ) : searchQuery.isSuccess && searchResults.length === 0 ? (
+        <EmptyState message={`‘${keyword}’에 대한 검색 결과가 없어요.`} />
+      ) : (
+        <ul className="grid grid-cols-2 gap-x-10">
+          {searchResults.map((movie) => (
+            <li key={movie.id} className="border-b border-line py-5">
+              <Link
+                to="/movies/$movieId"
+                params={{ movieId: String(movie.id) }}
+                className="flex gap-[18px]"
+              >
+                <MoviePoster
+                  src={movie.posterUrl}
+                  alt={movie.title}
+                  loading="lazy"
+                  className="h-[190px] w-[126px] shrink-0 rounded-lg"
+                />
+                <div className="flex min-w-0 flex-1 flex-col gap-2.5 pt-1">
+                  <h3 className="text-xl font-bold leading-6">{movie.title}</h3>
+                  <p className="text-xs text-ink-3">
+                    {movie.originalTitle}
+                    <span className="ml-2">{movie.releaseDate}</span>
+                  </p>
+                  <p className="line-clamp-2 text-xs leading-5 text-ink-2">{movie.overview}</p>
+                  <span className="mt-auto mb-9 flex items-center gap-1 text-xs font-bold text-primary">
+                    상세 보기
+                    <span
+                      className="size-3.5 bg-primary [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]"
+                      style={{
+                        maskImage: "url(/icons/movie-icons/arrow-right.svg)",
+                        WebkitMaskImage: "url(/icons/movie-icons/arrow-right.svg)",
+                      }}
+                    />
+                  </span>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

@@ -9,6 +9,9 @@ import type {
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p";
 
+// TMDB는 500페이지까지만 조회할 수 있어요.
+const MAX_PAGE = 500;
+
 const toImageUrl = (path: string | null, size: string) =>
   path ? `${IMAGE_BASE_URL}/${size}${path}` : null;
 
@@ -36,18 +39,20 @@ const toMovie = (movie: TmdbMovie): Movie => ({
 export interface MovieList {
   movies: Movie[];
   page: number;
+  totalPages: number;
   totalResults: number;
 }
 
 const toMovieList = (response: TmdbPagedResponse<TmdbMovie>): MovieList => ({
   movies: response.results.map(toMovie),
   page: response.page,
+  totalPages: Math.min(response.total_pages, MAX_PAGE),
   totalResults: response.total_results,
 });
 
-export async function getPopularMovies(signal?: AbortSignal): Promise<MovieList> {
+export async function getPopularMovies(page: number, signal?: AbortSignal): Promise<MovieList> {
   const response = await tmdbClient
-    .get("movie/popular", { searchParams: { page: 1 }, signal })
+    .get("movie/popular", { searchParams: { page }, signal })
     .json<TmdbPagedResponse<TmdbMovie>>();
   return toMovieList(response);
 }

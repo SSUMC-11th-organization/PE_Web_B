@@ -1,18 +1,16 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { routeTree } from "./routeTree.gen";
-import { fetchPopularMoviesWithFetch } from "./apis/fetch-popular-movies";
 import "./index.css";
 
-// 순수 fetch 요청을 개발 환경에서 한 번 보내 Network 패널에서 확인해요.
-if (import.meta.env.DEV) {
-  fetchPopularMoviesWithFetch()
-    .then((data) => console.info("[fetch] 인기 영화", data))
-    .catch((error: unknown) => console.warn("[fetch] 인기 영화 요청 실패", error));
-}
-
 const router = createRouter({ routeTree });
+const ONE_MINUTE = 60 * 1000;
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: ONE_MINUTE } }, // staleTime: 60 * 1000도 가능
+});
 
 declare module "@tanstack/react-router" {
   interface Register {
@@ -22,6 +20,9 @@ declare module "@tanstack/react-router" {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   </StrictMode>,
 );
