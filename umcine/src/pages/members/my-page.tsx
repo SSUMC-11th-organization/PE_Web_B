@@ -1,14 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { isHTTPError } from "ky";
 import { useEffect, useState, type SubmitEvent } from "react";
-import { checkEmail } from "../../api/members/check-email";
-import { checkNickname } from "../../api/members/check-nickname";
 import { getMemberRatings } from "../../api/members/get-member-ratings";
 import type { MemberRating } from "../../api/members/models";
 import { getMovieDetail } from "../../api/movies/get-movie-detail";
 import type { TmdbMovieDetail } from "../../api/movies/models";
 import StatusMessage from "../../components/common/status-message";
 import MoviePoster from "../../components/movies/movie-poster";
+import { useProfileStore } from "../../stores/profile-store";
 import { getTmdbPosterUrl } from "../../utils/movies/tmdb-image";
 
 // 평점(우리 백엔드)과 영화 정보(TMDB)를 합친 화면용 타입이에요. TMDB 요청이 실패하면 movie는 null이에요.
@@ -16,75 +15,9 @@ interface RatingWithMovie extends MemberRating {
   movie: TmdbMovieDetail | null;
 }
 
-interface DuplicateCheckFieldProps {
-  label: string;
-  placeholder: string;
-  defaultValue: string;
-  check: (value: string) => Promise<{ available: boolean }>;
-}
-
-// 닉네임 · 이메일 중복 확인 입력칸이에요. 확인 결과를 입력칸 아래에 보여 줘요.
-function DuplicateCheckField({ label, placeholder, defaultValue, check }: DuplicateCheckFieldProps) {
-  const [value, setValue] = useState(defaultValue);
-  const [result, setResult] = useState<{ value: string; available: boolean } | null>(null);
-  const [isChecking, setIsChecking] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedValue = value.trim();
-    if (!trimmedValue) return;
-
-    setIsChecking(true);
-    setResult(null);
-    setErrorMessage(null);
-    try {
-      const response = await check(trimmedValue);
-      setResult({ value: trimmedValue, available: response.available });
-    } catch {
-      setErrorMessage("서버에 연결하지 못했어요. 백엔드가 켜져 있는지 확인해 주세요.");
-    } finally {
-      setIsChecking(false);
-    }
-  }
-
-  return (
-    <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
-      <label className="text-sm font-bold text-text-primary" htmlFor={`check-${label}`}>
-        {label}
-      </label>
-      <div className="flex gap-2">
-        <input
-          id={`check-${label}`}
-          className="h-12 min-w-0 flex-1 rounded-[10px] border border-border-default bg-bg-surface px-4 text-sm text-text-primary outline-none placeholder:text-text-tertiary focus:border-action-primary"
-          placeholder={placeholder}
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-        />
-        <button
-          className="h-12 shrink-0 cursor-pointer rounded-[10px] bg-action-primary px-5 text-sm font-bold text-white disabled:opacity-50"
-          type="submit"
-          disabled={isChecking}
-        >
-          중복 확인
-        </button>
-      </div>
-      <p className="min-h-5 text-sm" role="status">
-        {isChecking && <span className="text-text-tertiary">확인하는 중이에요.</span>}
-        {errorMessage && <span className="text-red-600">{errorMessage}</span>}
-        {result &&
-          (result.available ? (
-            <span className="text-action-primary">‘{result.value}’은(는) 사용할 수 있어요.</span>
-          ) : (
-            <span className="text-red-600">‘{result.value}’은(는) 이미 사용 중이에요.</span>
-          ))}
-      </p>
-    </form>
-  );
-}
-
 export function MyPage() {
-  // 로그인(7주차) 전이라 회원 번호를 직접 골라서 조회해요.
+  const profile = useProfileStore((state) => state.profile);
+  // 로그인 API(8주차) 연결 전이라 회원 번호를 직접 골라서 조회해요.
   const [memberIdText, setMemberIdText] = useState("1");
   const [memberId, setMemberId] = useState(1);
   const [ratings, setRatings] = useState<RatingWithMovie[]>([]);
@@ -208,20 +141,41 @@ export function MyPage() {
       </h1>
 
       <section className="mb-12">
-        <h2 className="mb-5 text-2xl font-bold tracking-[-0.8px] text-text-primary">중복 확인</h2>
-        <div className="grid gap-6 md:grid-cols-2">
-          <DuplicateCheckField
-            label="닉네임"
-            placeholder="닉네임을 입력해 주세요"
-            defaultValue="수현"
-            check={checkNickname}
-          />
-          <DuplicateCheckField
-            label="이메일"
-            placeholder="이메일을 입력해 주세요"
-            defaultValue="noco@umc.com"
-            check={checkEmail}
-          />
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <h2 className="text-2xl font-bold tracking-[-0.8px] text-text-primary">프로필</h2>
+          <Link
+            className="flex h-10 items-center gap-1.5 rounded-lg border border-border-default bg-bg-surface px-4 text-sm font-bold text-text-secondary hover:bg-bg-page"
+            to="/my/edit"
+          >
+            <img className="size-4" src="/icons/edit.svg" alt="" />
+            수정하기
+          </Link>
+        </div>
+        <div className="flex flex-col gap-6 rounded-[10px] border border-border-default bg-bg-surface p-6 md:flex-row md:items-center">
+          <div className="flex size-20 shrink-0 items-center justify-center rounded-full bg-bg-page">
+            <img className="size-10" src="/icons/person.svg" alt="" />
+          </div>
+          <dl className="grid flex-1 gap-4 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="mb-1 text-text-tertiary">닉네임</dt>
+              <dd className="text-lg font-bold text-text-primary">{profile.nickname}</dd>
+            </div>
+            <div>
+              <dt className="mb-1 text-text-tertiary">이메일</dt>
+              <dd className="flex items-center gap-1.5 font-medium text-text-primary">
+                <img className="size-4" src="/icons/mail.svg" alt="" />
+                {profile.email}
+              </dd>
+            </div>
+            <div>
+              <dt className="mb-1 text-text-tertiary">한 줄 소개</dt>
+              <dd className="text-text-secondary">{profile.bio || "소개가 없어요."}</dd>
+            </div>
+            <div>
+              <dt className="mb-1 text-text-tertiary">가입일</dt>
+              <dd className="text-text-secondary">{profile.joinedAt}</dd>
+            </div>
+          </dl>
         </div>
       </section>
 
