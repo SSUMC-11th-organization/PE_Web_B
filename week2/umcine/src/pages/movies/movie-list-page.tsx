@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getMovies } from "../../api/movies/get-movies";
-import type { TmdbMovieListItem } from "../../api/movies/models";
 import MovieGrid from "../../components/movies/movie-grid";
 import Pagination from "../../components/movies/pagination";
 
@@ -8,47 +8,30 @@ import Pagination from "../../components/movies/pagination";
 const MAX_VISIBLE_PAGES = 5;
 
 export function MovieListPage() {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [movies, setMovies] = useState<TmdbMovieListItem[]>([]);
-  const [totalPages, setTotalPages] = useState(MAX_VISIBLE_PAGES);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    let ignore = false;
-    async function loadMovies() {
-      setIsLoading(true);
-      setErrorMessage(null);
+  const moviesQuery = useQuery({
+    queryKey: ["movies", "list", { page }],
+    queryFn: () => getMovies({ page }),
+  });
 
-      try {
-        const response = await getMovies({ page: currentPage });
-        if (!ignore) {
-          setMovies(response.results);
-          setTotalPages(Math.min(response.total_pages, MAX_VISIBLE_PAGES));
-        }
-      } catch {
-        if (!ignore) setErrorMessage("영화 목록을 불러오지 못했어요.");
-      } finally {
-        if (!ignore) setIsLoading(false);
-      }
-    }
+  const movies = moviesQuery.data?.results ?? [];
+  // 로딩 중이나 오류일 때도 페이지 버튼이 사라지지 않게 기본값을 둬요
+  const totalPages = Math.min(moviesQuery.data?.total_pages ?? MAX_VISIBLE_PAGES, MAX_VISIBLE_PAGES);
 
-    loadMovies();
-
-    return () => {
-      ignore = true;
-    };
-  }, [currentPage]);
+  const handlePageChange = (nextPage: number) => {
+    setPage(nextPage);
+  };
 
   return (
     <main className="flex flex-1 flex-col gap-5 px-4 py-6 sm:px-10 lg:px-20">
       <h1 className="text-[38px] leading-[44px] font-bold tracking-[-1.71px] text-ink">
         영화 목록
       </h1>
-      {isLoading ? (
+      {moviesQuery.isPending ? (
         <p className="py-20 text-center text-sm text-ink-tertiary">영화 목록을 불러오는 중이에요.</p>
-      ) : errorMessage ? (
-        <p className="py-20 text-center text-sm text-ink-tertiary">{errorMessage}</p>
+      ) : moviesQuery.isError ? (
+        <p className="py-20 text-center text-sm text-ink-tertiary">영화 목록을 불러오지 못했어요.</p>
       ) : movies.length === 0 ? (
         <p className="py-20 text-center text-sm text-ink-tertiary">표시할 영화가 없어요.</p>
       ) : (
@@ -56,9 +39,9 @@ export function MovieListPage() {
       )}
       {totalPages > 0 && (
         <Pagination
-          currentPage={currentPage}
+          currentPage={page}
           totalPages={totalPages}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
         />
       )}
     </main>

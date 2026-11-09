@@ -1,7 +1,7 @@
 import { Link, useParams } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { isHTTPError } from "ky";
 import { getMovieDetail } from "../../api/movies/get-movie-detail";
-import type { TmdbMovieDetail } from "../../api/movies/models";
 import { BookmarkButton } from "../../components/movies/bookmark-button";
 import { getMovieDetailErrorMessage } from "../../utils/movies/get-movie-detail-error-message";
 import { getTmdbBackdropUrl, getTmdbPosterUrl } from "../../utils/movies/tmdb-image";
@@ -15,52 +15,29 @@ function formatRuntime(runtime: number | null) {
 }
 
 export function MovieDetailPage() {
-    const { movieId } = useParams({ from: "/movies/$movieId" });
-    const parsedMovieId = Number(movieId);
-    const isValidMovieId = Number.isInteger(parsedMovieId) && parsedMovieId > 0;
+    const { movieId: movieIdParam } = useParams({ from: "/movies/$movieId" });
+    const movieId = Number(movieIdParam);
+    const isValidMovieId = Number.isInteger(movieId) && movieId > 0;
 
-    const [movie, setMovie] = useState<TmdbMovieDetail | null>(null);
-    const [isLoading, setIsLoading] = useState(isValidMovieId);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const movieDetailQuery = useQuery({
+        queryKey: ["movies", "detail", movieId],
+        queryFn: () => getMovieDetail(movieId),
+        enabled: isValidMovieId,
+        // 없는 영화는 다시 요청해도 결과가 같아서 404는 재시도하지 않아요
+        retry: (failureCount, error) => {
+            if (isHTTPError(error) && error.response.status === 404) return false;
+            return failureCount < 3;
+        },
+    });
 
-    useEffect(() => {
-        if (!isValidMovieId) return;
-
-        let ignore = false;
-        async function loadMovie() {
-            setIsLoading(true);
-            setErrorMessage(null);
-
-            try {
-                const response = await getMovieDetail(parsedMovieId);
-                if (!ignore) setMovie(response);
-            } catch (error) {
-                if (!ignore) setErrorMessage(getMovieDetailErrorMessage(error));
-            } finally {
-                if (!ignore) setIsLoading(false);
-            }
-        }
-
-        loadMovie();
-
-        return () => {
-            ignore = true;
-        };
-    }, [parsedMovieId, isValidMovieId]);
-
-    if (isValidMovieId && isLoading) {
-        return (
-            <main className="flex flex-1 flex-col items-center justify-center px-4 py-20">
-                <p className="text-sm text-ink-tertiary">영화 정보를 불러오는 중이에요.</p>
-            </main>
-        );
-    }
-
-    if (!isValidMovieId || errorMessage || !movie) {
+    // enabled가 false면 isPending이 계속 true라서 번호가 올바른지 먼저 확인해요
+    if (!isValidMovieId || movieDetailQuery.isError) {
         return (
             <main className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-20">
                 <p className="text-sm text-ink-tertiary">
-                    {!isValidMovieId ? "올바르지 않은 영화 번호예요." : (errorMessage ?? "영화를 찾을 수 없어요.")}
+                    {!isValidMovieId
+                        ? "올바르지 않은 영화 번호예요."
+                        : getMovieDetailErrorMessage(movieDetailQuery.error)}
                 </p>
                 <Link to="/" className="text-sm font-extrabold text-action hover:underline">
                     영화 목록으로
@@ -69,6 +46,15 @@ export function MovieDetailPage() {
         );
     }
 
+    if (movieDetailQuery.isPending) {
+        return (
+            <main className="flex flex-1 flex-col items-center justify-center px-4 py-20">
+                <p className="text-sm text-ink-tertiary">영화 정보를 불러오는 중이에요.</p>
+            </main>
+        );
+    }
+
+    const movie = movieDetailQuery.data;
     const backdropUrl = getTmdbBackdropUrl(movie.backdrop_path);
     const posterUrl = getTmdbPosterUrl(movie.poster_path);
     const runtime = formatRuntime(movie.runtime);

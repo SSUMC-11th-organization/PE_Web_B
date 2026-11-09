@@ -1,6 +1,6 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useState, type SubmitEvent } from "react";
-import type { TmdbMovieListItem } from "../../api/movies/models";
+import { useQuery } from "@tanstack/react-query";
+import type { SubmitEvent } from "react";
 import { searchMovies } from "../../api/movies/search-movies";
 import { BookmarkButton } from "../../components/movies/bookmark-button";
 import { getTmdbPosterUrl } from "../../utils/movies/tmdb-image";
@@ -9,42 +9,17 @@ const submitButtonClassName =
     "h-[42px] shrink-0 cursor-pointer rounded-lg bg-ink px-4 text-sm font-extrabold whitespace-nowrap text-white transition-colors hover:bg-ink/85";
 
 export function SearchPage() {
-    const { query = "" } = useSearch({ from: "/search" });
+    const { query } = useSearch({ from: "/search" });
     const navigate = useNavigate({ from: "/search" });
+    const normalizedQuery = query?.trim() ?? "";
 
-    const [movies, setMovies] = useState<TmdbMovieListItem[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const searchQuery = useQuery({
+        queryKey: ["movies", "search", { query: normalizedQuery }],
+        queryFn: () => searchMovies({ query: normalizedQuery }),
+        enabled: normalizedQuery.length > 0,
+    });
 
-    useEffect(() => {
-        let ignore = false;
-        const normalizedQuery = query.trim();
-
-        setMovies([]);
-        setErrorMessage(null);
-
-        if (!normalizedQuery) {
-            setIsLoading(false);
-            return;
-        }
-
-        setIsLoading(true);
-
-        searchMovies({ query: normalizedQuery })
-            .then((response) => {
-                if (!ignore) setMovies(response.results);
-            })
-            .catch(() => {
-                if (!ignore) setErrorMessage("검색 결과를 불러오지 못했어요.");
-            })
-            .finally(() => {
-                if (!ignore) setIsLoading(false);
-            });
-
-        return () => {
-            ignore = true;
-        };
-    }, [query]);
+    const searchResults = searchQuery.data?.results ?? [];
 
     function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -55,7 +30,7 @@ export function SearchPage() {
         });
     }
 
-    if (!query.trim()) {
+    if (!normalizedQuery) {
         return (
             <main className="flex flex-1 flex-col items-center px-4 py-24 sm:px-[72px] sm:pt-[209px]">
                 <div className="flex w-full max-w-[790px] flex-col items-center gap-9">
@@ -113,20 +88,20 @@ export function SearchPage() {
 
             <div className="flex h-[54px] items-center justify-between gap-4 border-b border-line">
                 <h2 className="truncate text-lg font-bold">‘{query}’ 검색 결과</h2>
-                <p className="shrink-0 text-xs text-ink-tertiary">영화 {movies.length}편</p>
+                <p className="shrink-0 text-xs text-ink-tertiary">영화 {searchResults.length}편</p>
             </div>
 
-            {isLoading ? (
+            {searchQuery.isLoading ? (
                 <p className="py-20 text-center text-sm text-ink-tertiary">검색 중이에요.</p>
-            ) : errorMessage ? (
-                <p className="py-20 text-center text-sm text-ink-tertiary">{errorMessage}</p>
-            ) : movies.length === 0 ? (
+            ) : searchQuery.isError ? (
+                <p className="py-20 text-center text-sm text-ink-tertiary">검색 결과를 불러오지 못했어요.</p>
+            ) : searchQuery.isSuccess && searchResults.length === 0 ? (
                 <p className="py-20 text-center text-sm text-ink-tertiary">
                     ‘{query}’와 일치하는 영화가 없어요.
                 </p>
             ) : (
                 <ul className="grid grid-cols-1 gap-x-10 lg:grid-cols-2">
-                    {movies.map((movie) => (
+                    {searchResults.map((movie) => (
                         <li key={movie.id} className="min-w-0">
                             <article className="flex gap-[18px] border-b border-line py-5">
                                 <Link
