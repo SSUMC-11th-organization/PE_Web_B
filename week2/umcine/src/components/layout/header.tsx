@@ -1,4 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
+import { useAuthStore } from "../../stores/auth-store";
 import { cn } from "../../utils/cn";
 
 const navLinkClassName =
@@ -6,8 +7,10 @@ const navLinkClassName =
 
 export function Header() {
   const pathname = useLocation({ select: (location) => location.pathname });
+  const isLoggedIn = useAuthStore((state) => state.member !== null);
   const isMoviesActive = pathname === "/" || pathname.startsWith("/movies");
   const isSearchActive = pathname === "/search";
+  const isProfileActive = pathname.startsWith("/profile");
 
   return (
     <header className="flex items-center justify-between gap-4 border-b border-line bg-surface px-4 py-6 sm:px-10 lg:px-20">
@@ -40,9 +43,15 @@ export function Header() {
           >
             검색
           </Link>
-          <a href="/profile" className={cn(navLinkClassName, "text-ink-secondary")}>
+          <Link
+            to="/profile"
+            className={cn(
+              navLinkClassName,
+              isProfileActive ? "text-ink underline" : "text-ink-secondary",
+            )}
+          >
             내 정보
-          </a>
+          </Link>
         </nav>
       </div>
 
@@ -54,12 +63,12 @@ export function Header() {
         >
           <img className="size-6" src="/icons/search.svg" alt="" />
         </Link>
-        <button
-          type="button"
-          className="h-[42px] cursor-pointer rounded-lg bg-action px-4 text-sm font-extrabold whitespace-nowrap text-white transition-colors hover:bg-action-hover"
+        <Link
+          to={isLoggedIn ? "/profile" : "/login"}
+          className="flex h-[42px] items-center rounded-lg bg-action px-4 text-sm font-extrabold whitespace-nowrap text-white transition-colors hover:bg-action-hover"
         >
-          로그인
-        </button>
+          {isLoggedIn ? "마이페이지" : "로그인"}
+        </Link>
       </div>
     </header>
   );
