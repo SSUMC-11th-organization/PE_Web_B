@@ -48,12 +48,18 @@ export function Header() {
         >
           <img src="/icons/search.svg" alt="" />
         </Link>
-        <button
-          className="h-[42px] cursor-pointer rounded-lg bg-action-primary px-4 text-sm font-bold text-white"
-          type="button"
+        <Link
+          className="hidden h-[42px] items-center rounded-lg px-4 text-sm font-bold text-text-secondary hover:bg-bg-page sm:flex"
+          to="/signup"
+        >
+          회원가입
+        </Link>
+        <Link
+          className="flex h-[42px] items-center rounded-lg bg-action-primary px-4 text-sm font-bold text-white"
+          to="/login"
         >
           로그인
-        </button>
+        </Link>
       </div>
     </header>
   )
