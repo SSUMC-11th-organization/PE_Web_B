@@ -1,0 +1,34 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.6/schema.json",
+  "files": {
+    "includes": ["src/**", "*.json", "*.ts", "*.js", "index.html", "!!src/routeTree.gen.ts"],
+    "ignoreUnknown": true
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    },
+    "includes": [
+      "src/api/members/**",
+      "src/api/api-client.ts",
+      "src/pages/auth/**",
+      "src/pages/profile/**",
+      "src/components/auth/**",
+      "src/stores/profile-store.ts",
+      "src/utils/member-validation.ts",
+      "src/config/env.ts",
+      "src/index.css"
+    ]
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
+}
