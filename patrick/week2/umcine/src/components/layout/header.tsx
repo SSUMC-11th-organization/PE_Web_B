@@ -24,19 +24,19 @@ export function Header() {
           검색
         </Link>
         <Link
-          to="/members"
+          to="/my-info"
           className="text-gray-500 no-underline hover:text-gray-900"
           activeProps={{ className: "text-gray-900 font-semibold" }}
         >
           내정보
         </Link>
       </nav>
-      <button
-        type="button"
-        className="border-0 rounded-lg bg-blue-600 text-white px-4 py-2 text-sm font-semibold cursor-pointer"
+      <Link
+        to="/login"
+        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-blue-700"
       >
         로그인
-      </button>
+      </Link>
     </header>
   );
 }
